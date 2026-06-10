@@ -1,10 +1,10 @@
 {
-  "name": "notom-dev",
-  "description": "Marketplace interne Notom (plugin notom-dev)",
+  "name": "notom-data-dev",
+  "description": "Marketplace interne Notom (plugin notom-data-dev)",
   "owner": { "name": "Notom", "email": "samy.mansouri@notom.io" },
   "plugins": [
     {
-      "name": "notom-dev",
+      "name": "notom-data-dev",
       "description": "Bonnes pratiques de dev/release Notom",
       "version": "0.1.0",
       "source": "./"

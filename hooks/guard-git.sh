@@ -31,11 +31,11 @@ push_targets_main() { printf '%s' "$cmd" | grep -Eq '(origin[ ]+main|HEAD:main|:
 is_git || exit 0
 
 if is_commit && [ "$branch" = "main" ]; then
-  deny "Commit direct sur main interdit (workflow Notom). Crée une branche feat/* puis ouvre une PR dev->main. Skill : /notom-dev:release. Échappatoire : NOTOM_SKIP_HOOKS=1."
+  deny "Commit direct sur main interdit (workflow Notom). Crée une branche feat/* puis ouvre une PR dev->main. Skill : /notom-data-dev:release. Échappatoire : NOTOM_SKIP_HOOKS=1."
 fi
 
 if is_push && { [ "$branch" = "main" ] || push_targets_main; }; then
-  deny "Push direct sur main interdit (workflow Notom). Passe par une PR dev->main. Skill : /notom-dev:release. Échappatoire : NOTOM_SKIP_HOOKS=1."
+  deny "Push direct sur main interdit (workflow Notom). Passe par une PR dev->main. Skill : /notom-data-dev:release. Échappatoire : NOTOM_SKIP_HOOKS=1."
 fi
 
 exit 0

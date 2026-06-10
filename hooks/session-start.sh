@@ -11,13 +11,13 @@ case "$remote" in
   *) exit 0 ;;            # autre projet → on ne pollue pas
 esac
 
-ctx='Bonnes pratiques Notom (plugin notom-dev) :
+ctx='Bonnes pratiques Notom (plugin notom-data-dev) :
 - Travaille sur une branche feat/*, JAMAIS directement sur main.
 - Commits Conventional Commits (fix:, feat:, chore:, ci: ...).
 - Les feat/* se mergent dans dev (PR) ; dev tourne sur la VM staging.
 - Lance les checks avant de commit (pre-commit : secrets, configs, dbt parse).
 - Staging = clone git : commit/push depuis la VM (pas de drift).
-- Pour livrer en prod : skill /notom-dev:release (release PR dev->main ; le merge declenche le deploy + tag CalVer + manifeste).
+- Pour livrer en prod : skill /notom-data-dev:release (release EXPLICITE ; merger sur main ne deploie pas).
 - Rollback : deploy-prod.yml workflow_dispatch avec input ref=<tag>.'
 
 jq -n --arg ctx "$ctx" '{

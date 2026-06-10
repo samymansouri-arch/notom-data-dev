@@ -1,5 +1,5 @@
 {
-  "name": "notom-dev",
+  "name": "notom-data-dev",
   "description": "Bonnes pratiques de dev/release de la Notom Cloud Data Platform : workflow feat→dev→release, garde-fous git, checks pre-commit. Compose avec superpowers.",
   "version": "0.1.0",
   "author": { "name": "Notom", "email": "samy.mansouri@notom.io" },
