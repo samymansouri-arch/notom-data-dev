@@ -5,8 +5,11 @@ chaque session Claude **interactive** (laptop + SSH sur les VM). Compose avec su
 
 ## Installer
 
-> ⚠️ Ce repo est **privé** : l'install **clone** le marketplace, ce qui exige des **identifiants GitHub**
-> dans la session. C'est une **étape manuelle, par machine** (pas d'auto-provisioning IaC, choix assumé).
+> Le repo est **public** (aucun secret dedans). Installer = **étape manuelle, par machine** (pas
+> d'auto-provisioning IaC, choix assumé → à refaire après un (re)build de VM).
+> ⚠️ **Important :** `claude plugin marketplace add` clone **toujours en SSH** (`git@github.com`,
+> `StrictHostKeyChecking=yes`). Il faut donc (a) `github.com` dans le `known_hosts` de l'utilisateur,
+> et (b) une **clé SSH GitHub** dans la session. D'où les deux méthodes ci-dessous.
 
 ### Sur le laptop
 ```
@@ -14,22 +17,28 @@ chaque session Claude **interactive** (laptop + SSH sur les VM). Compose avec su
 /plugin install notom-data-dev@notom-data-dev
 ```
 
-### Sur une VM staging (étape manuelle, à refaire à chaque (re)build de VM)
-**Prérequis :** être dans ta session **VS Code Remote-SSH avec l'agent SSH forwardé** (`ssh -A` / `ForwardAgent yes`)
-— sinon le clone du repo privé échoue (pas de creds sur la VM). Lance, dans cette session, sur la VM :
+### Sur une VM staging — méthode A : dans ta session (agent forwardé)
+Dans ta session **VS Code Remote-SSH avec l'agent SSH forwardé** (`ForwardAgent yes`, comme pour tes `git push`),
+en t'assurant que `github.com` est connu (`ssh-keyscan github.com >> ~/.ssh/known_hosts`) :
 ```
 /plugin marketplace add samymansouri-arch/notom-data-dev
 /plugin install notom-data-dev@notom-data-dev
 ```
-Équivalent CLI (non-interactif) : `claude plugin marketplace add samymansouri-arch/notom-data-dev && claude plugin install notom-data-dev@notom-data-dev`.
 
-**Vérifier :** `claude plugin list` doit afficher `notom-data-dev@notom-data-dev … ✔ enabled`.
+### Sur une VM staging — méthode B : sans agent (reproductible, recommandée pour un rebuild)
+Le repo étant public, on clone en **HTTPS anonyme** et on place le plugin sans aucune clé. Sur la VM,
+en tant que l'utilisateur qui lance Claude (`notom`) :
+```
+bash scripts/install-on-vm.sh      # depuis un clone du repo, ou : curl -fsSL <raw>/scripts/install-on-vm.sh | bash
+```
 
-> Le message `⚠ 1 setup issue: plugins · /doctor` au démarrage = le clone du repo privé n'a pas encore
-> abouti (creds absents) → ouvre Claude **avec l'agent forwardé** et relance l'install. Une fois cloné, le warning disparaît.
+**Vérifier (les deux méthodes) :** `claude plugin list` → `notom-data-dev@notom-data-dev … ✔ enabled`.
 
-> **VM de prod : inutile.** Le code y est livré par `rsync` (sans `.git`) → ce ne sont pas des dépôts git,
-> on n'y commit pas, le plugin n'a rien à y faire.
+> `⚠ 1 setup issue: plugins · /doctor` au démarrage = le clone du marketplace a échoué — le plus souvent
+> `github.com` absent du `known_hosts` (mur SSH avant l'auth) ou pas de clé en session. Méthode B l'évite.
+
+> **VM de prod : inutile.** Le code y est livré par `rsync` (sans `.git`) → pas des dépôts git, on n'y
+> commit pas, le plugin n'a rien à y faire.
 
 ## Mettre à jour
 ```
