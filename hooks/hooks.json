@@ -15,6 +15,14 @@
           { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-git.sh\"" }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/nudge-release.sh\"" }
+        ]
+      }
     ]
   }
 }

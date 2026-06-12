@@ -1,9 +1,16 @@
 ---
 name: release
-description: "Use when shipping a release to prod for ONE Notom app repo (notom-connect-analytics, notom-data-platform, or notom-cloud-gateway). Proposes the release scope (unreleased changes since the last tag), then runs the explicit release (deploy + CalVer tag + global manifest + GitHub Release). Also handles rollback. Invoke when the user says 'release', 'mettre en prod', 'déployer en prod', or asks to roll back."
+description: "Use when shipping/releasing a Notom app to prod (notom-connect-analytics, notom-data-platform, notom-cloud-gateway): the release is an EXPLICIT action separate from merging to main. Proposes the release scope (unreleased commits since the last tag), then runs the deploy workflow (deploy + CalVer tag + global manifest + GitHub Release); also handles rollback. Invoke when the user says 'release', 'releaser', 'livrer', 'mettre en prod', 'pousser en prod', 'déployer (en prod)', 'ship', or asks to roll back. ALSO invoke this to clarify the next step whenever a PR to main was just opened/merged and someone might think that 'releases' — it does NOT."
 ---
 
 # Release d'une app Notom en prod
+
+> ⛔️ **À LIRE EN PREMIER — l'erreur classique à NE PAS commettre :**
+> Ouvrir ou merger une PR vers `main` **n'est PAS une release** : c'est juste de l'**intégration de
+> code**, et **ça ne déploie RIEN** (le trigger `push:main` a été retiré). La release est une
+> **action explicite et distincte** : `gh workflow run deploy-prod.yml`. Si tu t'arrêtes après la
+> PR/merge vers `main`, **tu n'as pas releasé** — il reste l'étape 4 ci-dessous. Ne réponds jamais
+> « c'est releasé / mis en prod » tant que le workflow de déploiement n'a pas tourné avec succès.
 
 Modèle : **release explicite, une app à la fois** (en place depuis 2026-06-10).
 Spec : `docs/2026-06-04-dev-release-workflow-design.md`.
