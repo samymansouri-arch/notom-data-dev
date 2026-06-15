@@ -15,7 +15,7 @@
 - CD prod par repo (`.github/workflows/deploy-prod.yml`) : `on: push: [main]` + `workflow_dispatch` → fetch `.env` (Scaleway Secret Manager) → rsync `--delete` → `docker compose pull && up -d`. `environment: production` déjà déclaré. `concurrency: deploy-prod`.
 - Spécificités : gateway = IP publique directe (`vars.SCW_VM_PUBLIC_IP`) + étape de rendu de template Traefik + `deploy-dev.yml` (staging). analytics & data-platform = via bastion (`vars.SCW_BASTION_IP/PORT`, `vars.SCW_VM_PRIVATE_IP`). data-platform = étape `chown 50000:0`. analytics = copie `.env` → `docker/.env`.
 - Branche `dev` : présente sur data-platform uniquement.
-- `gh` authentifié (`samymansouri-arch`). Python 3.9.
+- `gh` authentifié via l'**identité machine** (PAT fine-grained org-owned, provisionné sur les VM par l'IaC `notom-data-infra` — voir `envs/staging/README.md`). Python 3.9.
 
 **Conventions du plan :**
 - `<INFRA>` = clone local `notom-data-infra`. `<GW>`/`<ANALYTICS>`/`<DP>` = clones des repos apps.
