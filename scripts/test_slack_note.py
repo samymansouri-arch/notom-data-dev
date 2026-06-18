@@ -1,4 +1,12 @@
+import json
+import pathlib
+import subprocess
+import sys
+
 from slack_note import build_payload
+
+SCRIPT = pathlib.Path(__file__).parent / "slack_note.py"
+
 
 BASE = {
     "platform_version": "2026.06.3",
@@ -50,3 +58,15 @@ def test_skipped_footer_present():
 def test_no_skipped_no_footer():
     text = build_payload(dict(BASE, skipped=[]))["text"]
     assert "non releasées" not in text
+
+
+def test_cli_dry_run_prints_payload(tmp_path):
+    fixture = tmp_path / "release.json"
+    fixture.write_text(json.dumps(BASE), encoding="utf-8")
+    out = subprocess.check_output(
+        [sys.executable, str(SCRIPT), "--input", str(fixture), "--dry-run"],
+        text=True,
+    )
+    payload = json.loads(out)
+    assert "platform 2026.06.3" in payload["text"]
+    assert "• connect-analytics →" in payload["text"]
