@@ -1,6 +1,6 @@
 ---
 name: release
-description: "Use when shipping/releasing a Notom app to prod (notom-connect-analytics, notom-data-platform, notom-cloud-gateway): the release is an EXPLICIT action separate from merging to main. Proposes the release scope (unreleased commits since the last tag), then runs the deploy workflow (deploy + CalVer tag + global manifest + GitHub Release); also handles rollback. Invoke when the user says 'release', 'releaser', 'livrer', 'mettre en prod', 'pousser en prod', 'déployer (en prod)', 'ship', or asks to roll back. ALSO invoke this to clarify the next step whenever a PR to main was just opened/merged and someone might think that 'releases' — it does NOT."
+description: "Use when shipping/releasing a Notom app to prod (notom-connect-analytics, notom-data-platform, notom-cloud-gateway): the release is an EXPLICIT action separate from merging to main. Two modes: ONE app, or ALL apps that have unreleased commits in one go (mode « tout », with one consolidated confirmation + a consolidated release note posted to a dedicated Slack channel). Proposes the release scope (unreleased commits since the last tag), then runs the deploy workflow (deploy + CalVer tag + global manifest + GitHub Release); also handles rollback. Invoke when the user says 'release', 'releaser', 'livrer', 'mettre en prod', 'pousser en prod', 'déployer (en prod)', 'ship', 'release tout', 'release all', 'livrer tout', 'tout mettre en prod', or asks to roll back. ALSO invoke this to clarify the next step whenever a PR to main was just opened/merged and someone might think that 'releases' — it does NOT."
 ---
 
 # Release d'une app Notom en prod
@@ -18,8 +18,8 @@ Spec : `docs/2026-06-04-dev-release-workflow-design.md`.
 ## Principes
 - `feat/*` → PR → `dev` (intégration, validée sur la VM staging) → PR → `main`.
 - **Merger sur `main` NE déploie PAS** (intégration seulement ; trigger `push:main` retiré).
-- **Une release = UNE app, choisie explicitement** + une action délibérée. Pour plusieurs apps,
-  relancer la procédure pour chacune (pas de release multi-repo en un geste).
+- Deux modes : **une app** (par défaut) ou **tout** (release des apps ayant du nouveau, cf. section
+  dédiée). Dans les deux cas, déclenchement explicite et délibéré.
 - Préfixes de tag : `notom-connect-analytics`→`analytics`, `notom-data-platform`→`data-platform`,
   `notom-cloud-gateway`→`gateway`.
 
@@ -52,6 +52,52 @@ Spec : `docs/2026-06-04-dev-release-workflow-design.md`.
 6. **Vérifier** : tag posé (`git ls-remote --tags origin | grep <prefix>`) ; GitHub Release créée
    (`gh release list --repo notomio/<repo>`) ; `notom-data-infra@main:prod-versions.yaml` à jour
    (version de l'app + `platform_version`) ; l'app prod répond.
+
+## Mode « tout » (les 3 apps en un geste + note Slack)
+
+Déclenché quand l'utilisateur dit « release tout / livrer tout / release all / tout mettre en prod ».
+Repos : `notom-connect-analytics` (préfixe `analytics`), `notom-data-platform` (`data-platform`),
+`notom-cloud-gateway` (`gateway`).
+
+1. **Calculer le périmètre** des 3 repos :
+   ```bash
+   for r in notom-connect-analytics:analytics notom-data-platform:data-platform notom-cloud-gateway:gateway; do
+     repo=${r%%:*}; prefix=${r##*:}
+     git -C "$repo" fetch origin --tags --quiet
+     LAST=$(git -C "$repo" tag --list "$prefix-*" --sort=-creatordate | head -1)
+     echo "## $repo (dernier tag: ${LAST:-aucun})"
+     git -C "$repo" log --oneline ${LAST:+$LAST..}origin/main
+   done
+   ```
+   Les repos **sans commit nouveau** sont **sautés** (notés « déjà à jour »).
+
+2. **Récap unique + 1 confirmation** : présenter le tableau (apps à livrer + leurs commits/PR ; apps
+   sautées) ; avertir (gateway = blip routage TOUS services ; analytics/data-platform = restart
+   ~30-60 s). **Demander UNE confirmation** pour l'ensemble. Si rien nulle part → le dire, stop.
+
+3. **Exécuter séquentiellement** (pour chaque app à livrer) :
+   ```bash
+   gh workflow run deploy-prod.yml --repo notomio/<repo>
+   # récupérer l'id du run lancé puis :
+   gh run watch <id> --repo notomio/<repo> --exit-status
+   ```
+   Si une app **échoue** : **arrêter** les suivantes, rapporter ce qui est passé / pas passé, et
+   **NE PAS** poster la note Slack — demander à l'utilisateur (re-tenter / rollback / note partielle).
+
+4. **Récupérer les nouveaux tags** (par app livrée) :
+   `git -C <repo> ls-remote --tags origin | grep "<prefix>-" | sort | tail -1`, et la
+   `platform_version` depuis `notom-data-infra` (`git -C notom-data-infra show origin/main:prod-versions.yaml`).
+
+5. **Poster la note consolidée** :
+   ```bash
+   WEBHOOK=$(scw secret version access slack-release-webhook-prod revision=latest_enabled -o json \
+     | jq -r .data | base64 -d)
+   # construire release.json : {platform_version, date(YYYY-MM-DD), released:[{app,version,changes:[...]}], skipped:[...]}
+   python3 notom-data-dev/scripts/slack_note.py --input release.json --webhook-url "$WEBHOOK"
+   ```
+   `changes` = les commits/PR calculés à l'étape 1. (Tester d'abord avec `--dry-run` pour relire le rendu.)
+
+6. **Vérifier** (comme en mode une app) : tags posés, GitHub Releases, `prod-versions.yaml` à jour, apps prod répondent.
 
 ## Rollback (revenir à une version)
 1. Lister les tags : `git ls-remote --tags origin | grep <prefix>`.
