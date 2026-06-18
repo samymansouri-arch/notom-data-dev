@@ -90,7 +90,7 @@ Repos : `notom-connect-analytics` (préfixe `analytics`), `notom-data-platform` 
 
 5. **Poster la note consolidée** :
    ```bash
-   WEBHOOK=$(scw secret version access slack-release-webhook-prod revision=latest_enabled -o json \
+   WEBHOOK=$(scw secret version access-by-path secret-name=slack-release-webhook-prod secret-path=/ revision=latest_enabled -o json \
      | jq -r .data | base64 -d)
    # construire release.json : {platform_version, date(YYYY-MM-DD), released:[{app,version,changes:[...]}], skipped:[...]}
    python3 notom-data-dev/scripts/slack_note.py --input release.json --webhook-url "$WEBHOOK"
