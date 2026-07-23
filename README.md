@@ -47,7 +47,10 @@ bash scripts/install-on-vm.sh      # depuis un clone du repo, ou : curl -fsSL <r
 
 ## Contenu
 - **Skill `/notom-data-dev:release`** — procédure de release (PR dev→main, tag CalVer, manifeste) + rollback.
-- **Hook SessionStart** — injecte les bonnes pratiques dans les repos `notomio/*` (silencieux ailleurs).
+- **Hook SessionStart** — injecte les bonnes pratiques **et les conventions de travail concurrent
+  (multi-agents)** quand la session démarre dans un repo `notomio/*` **ou dans un dossier de travail
+  qui héberge des repos `notomio/*`** (jusqu'à 2 niveaux sous `cwd` — ex. `notom-connect/` ou
+  `cloud-data-platform/` ; liste les repos détectés). Silencieux ailleurs.
 - **Hook PreToolUse** — refuse `commit`/`push` direct sur `main` (repos notomio, sessions interactives).
   Échappatoire : `NOTOM_SKIP_HOOKS=1`.
 - **`.pre-commit-config.yaml`** (committé dans chaque repo app) — anti-secrets (gitleaks), yamllint,
