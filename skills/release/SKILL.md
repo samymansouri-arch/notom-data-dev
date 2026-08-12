@@ -41,11 +41,40 @@ Spec : `docs/2026-06-04-dev-release-workflow-design.md`.
 3. **Prévenir si sensible** : gateway = redéploiement Traefik → bref blip de routage pour TOUS les
    services ; analytics/data-platform = redémarrage conteneurs ~30-60s.
 
-4. **Lancer la release explicite** (après confirmation) :
+4. **Rédiger la note de release, PUIS lancer la release explicite** (après confirmation) :
    ```bash
-   gh workflow run deploy-prod.yml --repo notomio/<repo>
+   gh workflow run deploy-prod.yml --repo notomio/<repo> -f note="$(cat <<'EOF'
+   <2 à 6 lignes lisibles : ce que ça change POUR UN LECTEUR, et l'action requise s'il y en a une>
+   EOF
+   )"
    ```
-   (aucun input → release de la version courante de `main`).
+   ⚠ Ne pas confondre les deux inputs : **`ref`** est vide pour une release (il ne sert qu'au
+   rollback), **`note`** ne doit JAMAIS l'être.
+
+   **Format de la note** — l'entête (`🚀 Mise en prod — <app> <tag>`) est ajouté automatiquement,
+   ne pas l'écrire :
+   ```
+   Changements
+   • <une phrase complète, ≥ 25 caractères>
+   • <une autre>
+   ```
+
+   **Contenu FONCTIONNEL, zéro détail technique.** Écrire pour un lecteur qui n'a pas suivi le
+   développement : ce qui change **pour lui**, et l'action attendue de sa part s'il y en a une.
+   Sont **interdits** : sujet de commit (`feat(...)`, `fix(...)`…), bruit de tuyauterie git
+   (`release-prep`, « Promotion dev → main », « Merge pull request »), nom de fichier, identifiant
+   `snake_case`, code entre backticks.
+
+   > ⛔️ **Ce n'est pas qu'une consigne : `data-platform` REFUSE la release.** Un job bloquant
+   > `validate-note` tourne avant le build et échoue si la note est absente, mal structurée ou
+   > technique — rien n'est construit, déployé, tagué ni posté. Il imprime chaque faute puis le
+   > format attendu.
+   > Origine : le 2026-08-12, `data-platform-2026.08.12` est parti sans note → annonce vide dans
+   > `#data-releases`, **non rattrapable** (un webhook ne se modifie pas, et re-lancer poserait un
+   > tag + une Release en double). Une consigne conseille un agent, elle ne l'empêche pas — d'où le
+   > garde-fou.
+   > ⚠ `notom-connect-analytics` et `notom-cloud-gateway` n'ont **ni input `note` ni step Slack** :
+   > ni note de release, ni garde-fou. Pour elles, `-f note=…` n'existe pas encore.
 
 5. **Surveiller** : `gh run watch <id> --repo notomio/<repo> --exit-status`.
 
