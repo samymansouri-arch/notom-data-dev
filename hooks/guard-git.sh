@@ -11,14 +11,31 @@ cwd="$(printf '%s' "$input" | jq -r '.cwd // empty')"
 [ -n "$cmd" ] || exit 0
 [ -n "$cwd" ] || exit 0
 
-# ⚠ Le dépôt visé n'est PAS forcément $cwd : `git -C <chemin>` opère ailleurs.
+# ⚠ Le dépôt visé n'est PAS forcément $cwd. DEUX formes le déplacent, et il faut les
+#   traiter toutes les deux : `git -C <chemin> …` ET `cd <chemin> && git …`.
 #   Juger sur $cwd donnait DEUX verdicts faux, dans les deux sens :
 #     - faux positif  : `git -C ~/brain commit` lancé depuis un repo notomio était REFUSÉ,
 #       alors que ~/brain n'a rien à voir avec le workflow Notom (constaté le 2026-09-03) ;
 #     - faux négatif  : un commit sur un repo notomio lancé depuis un dossier tiers PASSAIT.
+#   ⚠ La forme `cd` était restée à découvert (mesuré le 2026-09-03), et c'est la PLUS
+#   dangereuse des deux : `cd <repo notomio> && git commit` lancé depuis ~/brain franchissait
+#   le garde-fou SANS UN MOT. Un garde-fou qu'on contourne par accident ne garde rien.
 #   On résout donc le dépôt réellement ciblé avant de décider.
 repo_dir="$cwd"
-target="$(printf '%s' "$cmd" | grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:]]+' | head -1 | sed -E 's/.*-C[[:space:]]+//')"
+
+# a) `cd <chemin>` situé AVANT le premier `git` : c'est là que le git s'exécutera.
+#    Borner au préfixe évite de ramasser un `cd` qui SUIT le git (`git commit && cd /x`),
+#    et `tail -1` retient le dernier d'une chaîne (`cd /a && cd /b && git …` → /b).
+prefix="${cmd%%git *}"
+[ "$prefix" = "$cmd" ] && prefix=""
+target="$(printf '%s' "$prefix" \
+  | grep -oE '(^|[;&|][[:space:]]*)cd[[:space:]]+[^;&|]+' | tail -1 \
+  | sed -E 's/^[;&|]?[[:space:]]*cd[[:space:]]+//; s/[[:space:]]+$//')"
+
+# b) `git -C <chemin>` est PRIORITAIRE : il désigne le dépôt explicitement, même après un cd.
+gitc="$(printf '%s' "$cmd" | grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:]]+' | head -1 | sed -E 's/.*-C[[:space:]]+//')"
+[ -n "$gitc" ] && target="$gitc"
+
 target="${target%\"}"; target="${target#\"}"; target="${target%\'}"; target="${target#\'}"
 if [ -n "$target" ]; then
   case "$target" in
