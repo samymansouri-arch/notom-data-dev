@@ -27,6 +27,17 @@ r=$(mk_repo "$NOTOMIO" feat/x); assert_deny  "$(run "$r" 'git push origin main')
 r=$(mk_repo "$NOTOMIO" feat/x); assert_deny  "$(run "$r" 'git push origin HEAD:main')" "push HEAD:main refusé"
 r=$(mk_repo "$NOTOMIO" feat/x); assert_allow "$(run "$r" 'git push origin feat/x')"    "push feat/x autorisé"
 r=$(mk_repo "$OTHER"   main);   assert_allow "$(run "$r" 'git commit -m "x"')"        "commit sur main hors-notomio autorisé"
+
+# ── Ménage post-merge : supprimer des branches mergées n'est pas un push sur main ──────
+# Régression du 2026-09-08 : refusé depuis le checkout principal (HEAD=main), alors que la
+# commande ne touche pas main. Les cinq cas ci-dessous verrouillent le comportement voulu.
+r=$(mk_repo "$NOTOMIO" main);   assert_allow "$(run "$r" 'git push origin --delete feat/x fix/y release/z')" "suppression de branches mergées depuis main autorisée"
+r=$(mk_repo "$NOTOMIO" main);   assert_allow "$(run "$r" 'git push origin -d feat/x')"              "suppression forme courte -d autorisée"
+r=$(mk_repo "$NOTOMIO" main);   assert_allow "$(run "$r" 'git push origin :feat/x')"                "suppression par refspec vide autorisée"
+r=$(mk_repo "$NOTOMIO" main);   assert_allow "$(run "$r" 'git push origin --delete feat/main-fix')" "branche dont le NOM contient main : suppression autorisée"
+r=$(mk_repo "$NOTOMIO" feat/x); assert_deny  "$(run "$r" 'git push origin --delete main')"          "supprimer main REFUSÉ"
+r=$(mk_repo "$NOTOMIO" feat/x); assert_deny  "$(run "$r" 'git push origin --delete refs/heads/main')" "supprimer refs/heads/main REFUSÉ"
+r=$(mk_repo "$NOTOMIO" main);   assert_deny  "$(run "$r" 'git push origin main')"                   "push sur main toujours refusé (non-régression)"
 export NOTOM_SKIP_HOOKS=1
 r=$(mk_repo "$NOTOMIO" main);   assert_allow "$(run "$r" 'git commit -m "x"')" "échappatoire NOTOM_SKIP_HOOKS"
 unset NOTOM_SKIP_HOOKS
